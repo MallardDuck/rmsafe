@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is a simple tool for removing a large amount of files quickly and safely.
 author="Dan Pock"
-ver="0.0.1a"
+ver="0.2.0a"
 progFolder="/root/scripts/rmsafe"
 JOB="${progFolder}/jobs"
 tempFolder="/home/temp/rmsafe"
@@ -133,19 +133,6 @@ lDirs() {
   fi
 }
 
-sfChk() {
-    if [[ "$ADMIN" -eq "AnonAdmin" ]]; then
-      if [[ ${DEBUG} -eq "1" ]]; then
-	echo "Admin is Anon; Setting Admin var to IP"
-      fi
-      ADMIN="${AIP}"
-      if [[ ${DEBUG} -eq "1" ]]; then
-	echo "Admin is now ${ADMIN}"
-      fi
-    fi
-}
-
-
 safeList() {
   # search the location given for Files
     echo "Finding all files in $1";
@@ -160,8 +147,8 @@ safeList() {
 }
 
 poplists() {
-  cat ${ftemp} > ${JOB}/${ADMIN}-${NJOB}-${part}-${DATE}.file
-  cat ${dtemp} > ${JOB}/${ADMIN}-${NJOB}-${part}-${DATE}.dir
+  cat ${ftemp} > ${JOB}/${AIP}-${NJOB}-${part}-${DATE}.file
+  cat ${dtemp} > ${JOB}/${AIP}-${NJOB}-${part}-${DATE}.dir
 }
 
 userList() {
@@ -219,16 +206,27 @@ pickJob() {
   options=("All" "Mine")
   PS3="${prompts[0]}"
   read -p "Select from All Jobs or Your Jobs: [All|Mine] " -e -i All pJab 
+  echo "Use \"q\" or \"quit\" to exit selection.";
   case $pJab in
     "All")
       list;
       read -p "Select Job to execute: " -e mJab
-        doIT=`cat ${JOBS}|head -$mJab|tail -1`
-        if [[ ${DEBUG} -eq "1" ]]; then
-          echo "The job to run is: $doIT"
-        fi
-      doJob $doIT;
-      exit;
+       case $mJab in
+        "q")
+          exit;
+        ;;
+        "quit")
+          exit;
+        ;;
+        *)
+          doIT=`cat ${JOBS}|head -$mJab|tail -1`
+          if [[ ${DEBUG} -eq "1" ]]; then
+            echo "The job to run is: $doIT"
+          fi
+          doJob $doIT;
+          exit;
+        ;;
+      esac
     ;;
     "Mine")
       userList;
@@ -237,6 +235,10 @@ pickJob() {
         if [[ ${DEBUG} -eq "1" ]]; then
           echo "The job to run is: $doIT"
         fi
+      echo "Use q/quit to exit this.";
+      if [[ ${mJab} = "q\|quit" ]]; then
+        exit
+      fi
       doJob $doIT;
       exit;
     ;;
@@ -257,11 +259,99 @@ doJob() {
   fi
   jPath=$1
   # Done w/Vars next pick what to do
+  unset ynDel;
   echo "What would you like to do with this job?: "
   select wut in ${options[@]}; do
     case $wut in
       "run")
-        echo -e "${bldred}WARNING:${rst} ${mag}Once you select and it is processed there's no going back!${rst}"
+        echo -e "${bldred}WARNING:${rst} ${mag}Once you select and it is processed there's no going back!${rst}";
+        read -p "Are you sure it's time to delete this?: [Yes/No] " -e -i "No" ynDel;
+        if [[ ${ynDel} = "No" ]]; then
+          exit;
+        fi
+        if [[ ${ynDel} = "Yes" ]]; then
+          read -p "Remove Files, Dirs, or Both?: " -e -i "Both" ynType 
+          case $ynType in
+            "Both")
+              jk=2
+            ;;
+            "Files")
+              jk=3
+            ;;
+            "Dirs")
+              jk=1
+            ;;
+          esac
+          if [[ ${ynDel} -eq "Yes" ]]; then
+            if [[ ${jk} -eq "3" ]]; then
+              l=`cat ${jPath}.file|wc -l`
+              echo "Deleting the files now."
+              for p in $(cat ${jPath}.file|tail -$((${l}-3)));do
+                rm $p;
+                #echo $p;
+              done;
+              echo "Done removing files."
+            fi
+            if [[ ${jk} -eq "1" ]]; then
+              if [ -e "${jPath}.dir" ];then
+                l=`cat ${jPath}.dir|wc -l`
+                echo "Deleting the dirs."
+                for p in $(cat ${jPath}.dir|tail -$((${l}-3)));do
+                  rmdir $p;
+                  #echo $p;
+                done;
+                echo "Done removing files."
+              fi
+            fi
+            if [[ ${jk} -eq "2" ]]; then
+              if [ -e "${jPath}.file" ];then
+                l=`cat ${jPath}.file|wc -l`
+                echo "Deleting the files first."
+                for p in $(cat ${jPath}.file|tail -$((${l}-3)));do
+                  rm $p;
+                  #echo $p;
+                done;
+                echo "Done removing files."
+              fi
+              if [ -e "${jPath}.dir" ];then
+                l=`cat ${jPath}.dir|wc -l`
+                echo "Deleting the dirs."
+                for p in $(cat ${jPath}.dir|tail -$((${l}-3)));do
+                  rmdir $p;
+                  #echo $p;
+                done;
+                echo "Done removing files."
+              fi
+            fi
+            if [[ ${jk} -eq "1" ]]; then
+              if [ -e "${jPath}.dir" ];then
+                rmdir ${jPath}.dir
+              else
+                echo "Error: No SafeRM job (dirs) file to work from.";
+              fi
+            fi
+            if [[ ${jk} -eq "2" ]]; then
+              if [ -e "${jPath}.dir" ];then
+                rm ${jPath}.dir
+              else
+                echo "Error: No SafeRM job (dirs) file to work from.";
+              fi
+              if [ -e "${jPath}.file" ];then
+                rm ${jPath}.file
+              else
+                echo "Error: No SafeRM job (files) file to work from.";
+              fi
+            fi
+            if [[ ${jk} -eq "3" ]]; then
+              if [ -e "${jPath}.file" ];then
+                rm ${jPath}.file
+              else
+                echo "Error: No SafeRM job (files) file to work from.";
+              fi
+            fi
+          fi
+        fi
+        exit;
       ;;
       "report")
         echo -e "${bldmag}Info:${rst} ${grn}So the next thing will be a Markdown'd report you can send to the customer.${rst}";
