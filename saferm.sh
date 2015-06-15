@@ -13,7 +13,6 @@ ltemp="${tempFolder}/ltemp"
 
 # Vars
 JOBS="${progFolder}/jobfile"
-#JOBS="${progFolder}/jobfile"
 ADMIN="AnonAdmin"
 AIP=`echo $SSH_CLIENT|awk '{print$1}'`
 NJOB="default" #Name of current job-to be created
@@ -87,33 +86,14 @@ rmOld() {
 }
 
 prep() {
-    # Get the LWalias - Admins Jabber handle
-    read -p "Who are you? Enter your Name or Alias: " -e -i ${ADMIN} ADMIN;
-    # Grab a name for the Removal job
-    read -p "Custom job name?: " -e -i ${NJOB} NJOB;
-    if [[ ${DEBUG} -eq "1" ]]; then
-      echo "====== DEBUG ======"; 
-      echo "Admin Name:" ${ADMIN};
-      echo "Job Name: "${NJOB};
-      echo "Timestamp: " ${DATE};
-      echo "Current Part: " ${part};
-    fi
-    # Store current vars for reuse
-    sAdmin; 
-    sfChk;
-}
-
-sAdmin() {
-    echo "Storing Admin data in temp file"
-    echo "ADMIN=${ADMIN}" > ${temp}
-    echo "NJOB=${NJOB}" >> ${temp}
-    echo "AdIP=${AIP}" >> ${temp}
-    cat ${temp} > ${utemp};
-    if [[ ${DEBUG} -eq "1" ]]; then
-      echo "====== DEBUG ======";
-      echo "Showing contents of Admin file"
-      cat ${utemp};
-    fi
+  rm -rf ${tempFolder};
+  mkdir -p ${tempFolder};
+  touch ${temp}
+  touch ${ftemp}
+  touch ${dtemp}
+  touch ${utemp}
+  touch ${ltemp}
+  echo "Prep Done. Temps Cleared";
 }
 
 countDis(){
@@ -321,7 +301,7 @@ mkitDwn() {
   fi
   clear;
   echo -e ${bldblu}${line}${rst};
-  echo "Copy the follwing Bold Cyan text.";
+  echo "Copy the follwing Bold Magenta text.";
   echo -e ${bldblu}${line}${rst};
   case "${myType}" in
     "Dirs")
@@ -391,7 +371,7 @@ notes() {
 
 
 # function to determine what to do when the script is ran
-while getopts ":e:hptdu" opt; do
+while getopts ":e:hpdu" opt; do
   case "${opt}" in
     d)
       DEBUG=1
@@ -407,16 +387,13 @@ done;
 OPTIND=1;
 updateJobs;
 # Anything in the case above has priority over flags below
-while getopts ":e:hptaldsu" opt; do
+while getopts ":e:hpaldsu" opt; do
   case "${opt}" in
     e)
       header;
       bumpDat ${part}
       LOCATION=${OPTARG}
       exists $LOCATION;
-      if [[ ${part} -eq "1" ]];then
-        prep
-      fi
       safeList $LOCATION;
       poplists;
     ;;
@@ -435,10 +412,6 @@ while getopts ":e:hptaldsu" opt; do
     l)
       header;
       list;
-    ;;
-    t)
-      header;
-      FINDER=1;
     ;;
     s)
       pickJob;
