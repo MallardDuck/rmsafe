@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is a simple tool for removing a large amount of files quickly and safely.
 author="Dan Pock"
-ver="0.2.0a"
+ver="0.2.1a"
 progFolder="/root/scripts/rmsafe"
 JOB="${progFolder}/jobs"
 tempFolder="/home/temp/rmsafe"
@@ -21,8 +21,39 @@ part="0"
 ecnt="0"
 header="\n %-1s %-16s %8s %10s %13s %8s\n"
 format="%2s %-16s %8s %7s %20s %8s \n"
+color="${progFolder}/colors"
+webColor="https://raw.githubusercontent.com/MallardDuck/rmsafe/master/rmsafe/colors?token=AAl1ovWoMhS7Lw6SxyYiXqBlQqaWIdbfks5ViHKcwA%3D%3D"
+
+# init function
+prep() {
+  if [ ! -d "${progFolder}" ]; then
+    mkdir -p ${progFolder} 
+    wget -o /dev/null --output-document ${color} ${webColor} > /dev/null
+    mkdir -p ${JOB}
+  fi 
+  if [ -d "${tempFolder}" ]; then
+    rm -rf ${tempFolder};
+  fi
+  if [ ! -d "${tempFolder}" ]; then
+    mkdir -p ${tempFolder};
+  fi
+  touch ${JOBS}
+  touch ${ftemp}
+  touch ${dtemp}
+  touch ${utemp}
+  touch ${ltemp}
+  echo "Prep Done. Temps Cleared";
+}
+
+
+# First run
+if [ ! -d "${progFolder}" ]; then
+  prep
+fi
+
+
 # Imports
-. ${progFolder}/colors
+. ${color}
 
 # Header
 header() {
@@ -83,17 +114,6 @@ fi
 # once the full script is done it will be more clear how cleaning will be done
 rmOld() {
   find ${JOB} -mtime +7 -delete
-}
-
-prep() {
-  rm -rf ${tempFolder};
-  mkdir -p ${tempFolder};
-  touch ${temp}
-  touch ${ftemp}
-  touch ${dtemp}
-  touch ${utemp}
-  touch ${ltemp}
-  echo "Prep Done. Temps Cleared";
 }
 
 countDis(){
