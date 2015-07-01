@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is a simple tool for removing a large amount of files quickly and safely.
 author="Dan Pock"
-ver="0.2.1a"
+ver="0.2.2a"
 progFolder="/root/scripts/rmsafe"
 JOB="${progFolder}/jobs"
 tempFolder="/home/temp/rmsafe"
@@ -14,7 +14,7 @@ ltemp="${tempFolder}/ltemp"
 # Vars
 JOBS="${progFolder}/jobfile"
 ADMIN="AnonAdmin"
-AIP=`echo $SSH_CLIENT|awk '{print$1}'`
+sshIP=`echo $SSH_CLIENT|awk '{print$1}'`
 NJOB="default" #Name of current job-to be created
 DATE=`date +%y%m%d%H%S`
 part="0"
@@ -54,6 +54,16 @@ fi
 
 # Imports
 . ${color}
+
+# Determine the IP to be used
+if [ -z "${sshIP}" ]; then
+  if [[ ${DEBUG} -eq "1" ]]; then
+    echo "No SSH IP; setting to Local."
+  fi
+  AIP="127.0.0.1"
+else
+  AIP=${sshIP} 
+fi
 
 # Header
 header() {
@@ -271,7 +281,7 @@ pickJob() {
 
 doJob() {
   unset options;
-  options=("run" "report" "update" "remove" "exit");
+  options=("report" "run" "update" "remove" "exit");
   PS3=${prompts[1]}
   if [[ ${DEBUG} -eq "1" ]]; then
     echo "Now starting the action selection."
@@ -280,16 +290,31 @@ doJob() {
   jPath=$1
   # Done w/Vars next pick what to do
   unset ynDel;
+  echo -e "${grn}You should probably run the report first, then get approval before using run."
+  echo -e "If you're a ${rst}${bgwhi}${blu}nub${rst}${grn}, you should ${bldylw}DEFINITLY ${rst}${grn} get customer approval.${rst}";
   echo "What would you like to do with this job?: "
   select wut in ${options[@]}; do
     case $wut in
+      "report")
+        echo -e "${bldmag}Info:${rst} ${grn}So the next thing will be a Markdown'd report you can send to the customer.${rst}";
+        echo -e "${grn}If you're a ${rst}${bgwhi}${blu}nub${rst}${grn}, then you should ${bldylw}DEFINITLY ${rst}${grn}use this for customer approval.${rst}";
+        if [[ ${DEBUG} -eq "1" ]];then
+          echo "The path used is: ${jPath}";
+        fi
+        read -p "Type of report:[Files|Dirs|Both] " -e -i Files doType;
+        if [[ ${DEBUG} -eq "1" ]];then
+          echo "The type of markdown will be: ${doType}";
+        fi
+        mkitDwn ${doType} ${jPath};
+      ;;
       "run")
         echo -e "${bldred}WARNING:${rst} ${mag}Once you select and it is processed there's no going back!${rst}";
         read -p "Are you sure it's time to delete this?: [Yes/No] " -e -i "No" ynDel;
-        if [[ ${ynDel} = "No" ]]; then
+        if [[ ${ynDel} = "No" ]] || [[ ${ynDel} = "no" ]] || [[ ${ynDel} = "n" ]] || [[ ${ynDel} = "N" ]]; then
+          echo "Choose No; Exiting SafeRM now."
           exit;
         fi
-        if [[ ${ynDel} = "Yes" ]]; then
+        if [[ ${ynDel} = "Yes" ]] || [[ ${ynDel} = "Y" ]] || [[ ${ynDel} = "yes" ]] || [[ ${ynDel} = "y" ]]; then
           read -p "Remove Files, Dirs, or Both?: " -e -i "Both" ynType 
           case $ynType in
             "Both")
@@ -302,7 +327,7 @@ doJob() {
               jk=1
             ;;
           esac
-          if [[ ${ynDel} -eq "Yes" ]]; then
+          if [[ ${ynDel} = "Yes" ]] || [[ ${ynDel} = "Y" ]] || [[ ${ynDel} = "yes" ]] || [[ ${ynDel} = "y" ]]; then
             if [[ ${jk} -eq "3" ]]; then
               l=`cat ${jPath}.file|wc -l`
               echo "Deleting the files now."
@@ -370,20 +395,12 @@ doJob() {
               fi
             fi
           fi
+        else
+          echo -e "${bldbgrd}${bldmag}Incorrect input given. Must be:${rst}"
+          echo -e "${bldylw}Yes, yes, Y, or y; to execute.${rst}"
+          exit;
         fi
         exit;
-      ;;
-      "report")
-        echo -e "${bldmag}Info:${rst} ${grn}So the next thing will be a Markdown'd report you can send to the customer.${rst}";
-        echo -e "${grn}If you're a ${rst}${bgwhi}${blu}nub${rst}${grn}, then you should ${bldylw}DEFINITLY ${rst}${grn}use this for customer approval.${rst}";
-        if [[ ${DEBUG} -eq "1" ]];then
-          echo "The path used is: ${jPath}";
-        fi
-        read -p "Type of report:[Files|Dirs|Both] " -e -i Files doType;
-        if [[ ${DEBUG} -eq "1" ]];then
-          echo "The type of markdown will be: ${doType}";
-        fi
-        mkitDwn ${doType} ${jPath};
       ;;
       "update")
         echo "[WIP] I know how cool this sounds, sorry it's not realy yet. [ETA soon]"
@@ -470,16 +487,6 @@ notes() {
  echo "Time Requesting Approval: " `date`;
 }
 
-#delReport(){
-# use the safeList content to make a block of text
-# used to send to the customer for verification of the deletion
-#}
-
-#rmReport() {
-# similar to above; used to show the actions that were taken
-#}
-
-
 # function to determine what to do when the script is ran
 while getopts ":e:hpdu" opt; do
   case "${opt}" in
@@ -506,6 +513,7 @@ while getopts ":e:hpaldsu" opt; do
       exists $LOCATION;
       safeList $LOCATION;
       poplists;
+      echo "The directory: ${LOCATION} is now in the job list";
     ;;
     h)
       header;
