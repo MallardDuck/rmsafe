@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script is a simple tool for removing a large amount of files quickly and safely.
 author="Dan Pock"
-ver="0.2.2a"
+ver="0.2.2b"
 progFolder="/root/scripts/rmsafe"
 JOB="${progFolder}/jobs"
 tempFolder="/home/temp/rmsafe"
