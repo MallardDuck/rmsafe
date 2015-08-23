@@ -22,7 +22,7 @@ ecnt="0"
 header="\n %-1s %-16s %8s %10s %13s %8s\n"
 format="%2s %-16s %8s %7s %20s %8s \n"
 color="${progFolder}/colors"
-webColor="https://raw.githubusercontent.com/MallardDuck/rmsafe/master/rmsafe/colors?token=AAl1ovWoMhS7Lw6SxyYiXqBlQqaWIdbfks5ViHKcwA%3D%3D"
+webColor="https://raw.githubusercontent.com/MallardDuck/rmsafe/safeColor/rmsafe/colors?token=AAl1ohgbNeMspd4YzW4X7HglIGQ1ZSZXks5V42q_wA%3D%3D"
 
 # init function
 prep() {
